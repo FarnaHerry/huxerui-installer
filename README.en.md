@@ -26,11 +26,16 @@ generic interface; with it you compile your own — the equivalent of today's pe
 
 ### 2. Prebuilt mode (zero build)
 
-Download `huxerui-installer-<version>-windows-x86_64.zip` from a release, supply `branding.json`, an
-icon, a version, and the staged application payload, then run `make-setup.exe` at the package root to
-produce `<app>-<version>-windows-x86_64-setup.exe`. No C++ compilation and no PowerShell — the WiX
-toolset ships inside the package (`wix.exe` needs a .NET 6+ runtime). CI pipelines can keep using the
-equivalent `scripts/make-setup.ps1`. See [examples/prebuilt-mode](examples/prebuilt-mode) and the
+Download a release package, supply `branding.json`, an icon, a version, and the staged application
+payload, and you get `<app>-<version>-windows-x86_64-setup.exe` — no C++ compilation, with the WiX
+toolset bundled inside the package (`wix.exe` needs a .NET 6+ runtime). Pick one of two assets:
+
+- `huxerui-installer-<version>-windows-x86_64.zip`: the CLI package — run `make-setup.exe` at the
+  package root (CI pipelines can keep using the equivalent `scripts/make-setup.ps1`)
+- `huxerui-installer-gui-<version>-windows-x86_64.zip`: the GUI package — run `make-setup-gui.exe`, a
+  HuxerUI shell over the exact same packaging core (form fields, file pickers, live build log)
+
+See [examples/prebuilt-mode](examples/prebuilt-mode) and the
 callable workflow [.github/workflows/reusable-package.yml](.github/workflows/reusable-package.yml).
 
 Per-application identity (product name, logo, accent color, license text) is injected at run time: the
@@ -45,8 +50,11 @@ src/engine/installer_engine.cpp  # Burn BA engine (vendored from the HuxerUI SDK
 src/ui/branding.{h,cpp}          # branding.json runtime loading
 src/ui/default_app.cpp           # default generic interface
 src/main.cpp                     # wWinMain entry point
-src/shared/flat_json.h           # flat JSON parser shared by the BA and make-setup
-src/pack/make_setup.cpp          # make-setup.exe — native one-shot packager (no PowerShell needed)
+src/shared/flat_json.h           # flat JSON parser shared by the BA and the packager
+src/shared/utf8.h                # UTF-8/UTF-16 and path conversion helpers
+src/pack/packager.{h,cpp}        # packaging core shared by the CLI and the GUI
+src/pack/make_setup.cpp          # make-setup.exe — CLI front end (no PowerShell needed)
+src/studio/studio_app.cpp        # make-setup-gui.exe — HuxerUI graphical front end
 resources/strings/               # UI string catalogs: default.properties = 简体中文, en + translations
 wix/Package.wxs.in               # parameterized MSI template
 wix/Bundle.wxs.in                # parameterized bundle template (InstallFolder/CreateDesktopShortcut contract)
@@ -69,6 +77,7 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DHUXERUI_SOURCE_DIR="$P
 cmake --build build --config Release
 cmake --install build --config Release --component HuxerUIInstaller_huxerui_installer_ba --prefix out/ba
 cmake --install build --config Release --component HuxerUIInstaller_make_setup --prefix out
+cmake --install build --config Release --component HuxerUIInstaller_make_setup_gui --prefix out-gui
 ```
 
 `-DHUXERUI_SOURCE_DIR` builds HuxerUI from source (what the release CI does); to use an installed SDK

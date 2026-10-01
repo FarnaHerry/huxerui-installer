@@ -24,6 +24,10 @@ Expand-Archive huxerui-installer-0.1.0-windows-x86_64.zip -DestinationPath .
 first use); CI pipelines that already drive PowerShell can keep using it — both entry points derive the
 same AppId-based upgrade codes and produce equivalent bundles.
 
+Prefer a window over a command line? Download `huxerui-installer-gui-<version>-windows-x86_64.zip`
+instead and run `make-setup-gui.exe`: it is a HuxerUI form (app identity fields, file pickers, live
+build log) over the exact same packaging core.
+
 This directory holds a sample `branding.json` plus the `branding/` payload directory it references:
 
 - `branding.json` — every key is optional; delete keys rather than leaving placeholders.

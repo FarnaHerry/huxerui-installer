@@ -74,6 +74,32 @@ jobs:
           Compress-Archive -Path $Stage -DestinationPath `
               "huxerui-installer-$env:RELEASE_VERSION-windows-x86_64.zip"
 
+      - name: Stage the GUI package
+        shell: pwsh
+        run: |
+          $GuiStage = "stage/huxerui-installer-gui-$env:RELEASE_VERSION-windows-x86_64"
+          cmake --install build --config Release --component HuxerUIInstaller_make_setup_gui `
+              --prefix "$GuiStage"
+          cmake --install build --config Release --component HuxerUIInstaller_huxerui_installer_ba `
+              --prefix "$GuiStage/ba"
+          Copy-Item "build/.wix/tool" "$GuiStage/wix-toolset" -Recurse
+          Copy-Item wix "$GuiStage/wix" -Recurse
+          Copy-Item README.md, README.en.md, LICENSE "$GuiStage/"
+          $Expected = @(
+            "$GuiStage/make-setup-gui.exe",
+            "$GuiStage/wix-toolset/tools/net6.0/any/wix.exe",
+            "$GuiStage/ba/huxerui-installer-ba.exe",
+            "$GuiStage/wix/Package.wxs.in",
+            "$GuiStage/wix/Bundle.wxs.in"
+          )
+          foreach ($File in $Expected) {
+            if (-not (Test-Path -LiteralPath $File -PathType Leaf)) {
+              throw "GUI release package is incomplete; missing $File"
+            }
+          }
+          Compress-Archive -Path $GuiStage -DestinationPath `
+              "huxerui-installer-gui-$env:RELEASE_VERSION-windows-x86_64.zip"
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -81,4 +107,5 @@ jobs:
           gh release create "${{ github.ref_name }}" `
               --title "huxerui-installer ${{ github.ref_name }}" `
               --verify-tag `
-              "huxerui-installer-$env:RELEASE_VERSION-windows-x86_64.zip"
+              "huxerui-installer-$env:RELEASE_VERSION-windows-x86_64.zip" `
+              "huxerui-installer-gui-$env:RELEASE_VERSION-windows-x86_64.zip"

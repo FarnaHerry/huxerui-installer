@@ -49,9 +49,33 @@ set_target_properties(huxerui_installer_ba PROPERTIES OUTPUT_NAME "huxerui-insta
 # make-setup — native prebuilt-mode packager. A plain Win32 console tool (no HuxerUI dependency) that
 # wraps an already-staged application payload into a Burn bundle setup executable; the native equivalent
 # of scripts/make-setup.ps1.
-add_executable(make-setup src/pack/make_setup.cpp)
-target_include_directories(make-setup PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/shared")
+add_executable(make-setup src/pack/make_setup.cpp src/pack/packager.cpp)
+target_include_directories(make-setup PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/shared" "${CMAKE_CURRENT_SOURCE_DIR}/src/pack")
 target_compile_features(make-setup PRIVATE cxx_std_17)
 target_compile_definitions(make-setup PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
 target_link_libraries(make-setup PRIVATE bcrypt)
 install(TARGETS make-setup RUNTIME DESTINATION . COMPONENT HuxerUIInstaller_make_setup)
+
+# make-setup-gui — HuxerUI shell over the same packaging core, shipped as a separate release asset
+# (huxerui-installer-gui-<version>-windows-x86_64.zip) so CLI and GUI users each get their own package.
+huxerui_add_app(make-setup-gui
+        SOURCES src/studio/studio_app.cpp src/pack/packager.cpp
+)
+target_include_directories(make-setup-gui PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/shared"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/pack"
+)
+target_compile_definitions(make-setup-gui PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+target_link_libraries(make-setup-gui PRIVATE bcrypt shell32)
+set(HUXERUI_GUI_COMPONENT "HuxerUIInstaller_make_setup_gui")
+install(TARGETS make-setup-gui RUNTIME DESTINATION . COMPONENT "${HUXERUI_GUI_COMPONENT}")
+get_target_property(HUXERUI_GUI_RESOURCE_PACKAGE make-setup-gui HUXERUI_RESOURCE_PACKAGE)
+if (HUXERUI_GUI_RESOURCE_PACKAGE AND NOT HUXERUI_GUI_RESOURCE_PACKAGE MATCHES "-NOTFOUND$")
+    install(DIRECTORY "${HUXERUI_GUI_RESOURCE_PACKAGE}/"
+            DESTINATION "$<TARGET_FILE_BASE_NAME:make-setup-gui>.resources"
+            COMPONENT "${HUXERUI_GUI_COMPONENT}"
+    )
+endif ()
+_huxerui_install_runtime_dependencies(make-setup-gui "${HUXERUI_GUI_COMPONENT}"
+        . "$<TARGET_FILE_NAME:make-setup-gui>"
+)

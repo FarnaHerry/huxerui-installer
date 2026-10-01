@@ -23,10 +23,16 @@
 
 ### 2. 预编译接入（零构建）
 
-从 Release 下载 `huxerui-installer-<version>-windows-x86_64.zip`，提供 `branding.json`、图标、版本号
-和 staged 应用载荷，运行包根目录的 `make-setup.exe` 即得 `<app>-<version>-windows-x86_64-setup.exe`，
-**不需要编译任何 C++，也不需要 PowerShell**——WiX 工具集已随包内置（`wix.exe` 运行需要 .NET 6+
-运行时）。CI 里也可继续用等价的 `scripts/make-setup.ps1`。参见
+从 Release 下载压缩包，提供 `branding.json`、图标、版本号和 staged 应用载荷即可得到
+`<app>-<version>-windows-x86_64-setup.exe`，**不需要编译任何 C++**——WiX 工具集已随包内置
+（`wix.exe` 运行需要 .NET 6+ 运行时）。两个资产按喜好二选一：
+
+- `huxerui-installer-<version>-windows-x86_64.zip`：CLI 包，入口是包根目录的 `make-setup.exe`
+  （CI 里也可继续用等价的 `scripts/make-setup.ps1`）
+- `huxerui-installer-gui-<version>-windows-x86_64.zip`：GUI 包，入口是 `make-setup-gui.exe`
+  （HuxerUI 界面，填表 + 选文件 + 看日志，打包核心与 CLI 完全相同）
+
+参见
 [examples/prebuilt-mode](examples/prebuilt-mode) 与可复用工作流
 [.github/workflows/reusable-package.yml](.github/workflows/reusable-package.yml)。
 
@@ -41,8 +47,11 @@ src/engine/installer_engine.cpp  # Burn BA 引擎（vendor 自 HuxerUI SDK）+ �
 src/ui/branding.{h,cpp}          # branding.json 运行时加载
 src/ui/default_app.cpp           # 默认通用界面
 src/main.cpp                     # wWinMain 入口
-src/shared/flat_json.h           # BA 与 make-setup 共用的扁平 JSON 解析器
-src/pack/make_setup.cpp          # make-setup.exe——原生一键打包器（无需 PowerShell）
+src/shared/flat_json.h           # BA 与打包器共用的扁平 JSON 解析器
+src/shared/utf8.h                # UTF-8/UTF-16 与路径转换助手
+src/pack/packager.{h,cpp}        # 打包核心（CLI 与 GUI 共用）
+src/pack/make_setup.cpp          # make-setup.exe——CLI 前端（无需 PowerShell）
+src/studio/studio_app.cpp        # make-setup-gui.exe——HuxerUI 图形前端
 resources/strings/               # 界面字符串目录：default.properties = 简体中文，另有 en 及多语言
 wix/Package.wxs.in               # 参数化 MSI 模板
 wix/Bundle.wxs.in                # 参数化 bundle 模板（InstallFolder/CreateDesktopShortcut 变量契约）
@@ -65,6 +74,7 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DHUXERUI_SOURCE_DIR="$P
 cmake --build build --config Release
 cmake --install build --config Release --component HuxerUIInstaller_huxerui_installer_ba --prefix out/ba
 cmake --install build --config Release --component HuxerUIInstaller_make_setup --prefix out
+cmake --install build --config Release --component HuxerUIInstaller_make_setup_gui --prefix out-gui
 ```
 
 `-DHUXERUI_SOURCE_DIR` 以源码方式构建 HuxerUI（发版 CI 就是这么做的）；改用已安装的 SDK 则去掉它，
