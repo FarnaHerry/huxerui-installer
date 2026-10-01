@@ -243,3 +243,7 @@ const Application application{
         },
     }
 };
+
+int main() {
+  return RunApplication();
+}
