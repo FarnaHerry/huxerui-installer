@@ -51,14 +51,19 @@ scripts/make-setup.ps1           # 一键打包——预编译接入入口
 
 ## 本地构建预编译包
 
-需要 Windows + MSVC C++ x64 工具链、HuxerUI SDK 安装、以及运行 `wix.exe` 所需的 .NET 6+ 运行时：
+需要 Windows + MSVC C++ x64 工具链、HuxerUI 源码（或已安装的 SDK）、以及运行 `wix.exe` 所需的
+.NET 6+ 运行时：
 
 ```powershell
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH <huxerui-sdk-prefix> `
+git clone --depth 1 https://github.com/HuxerUI/HuxerUI.git huxerui-src
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DHUXERUI_SOURCE_DIR="$PWD/huxerui-src" `
     -DCMAKE_CXX_COMPILER=cl
 cmake --build build --config Release
 cmake --install build --config Release --component HuxerUIInstaller_huxerui_installer_ba --prefix out/ba
 ```
+
+`-DHUXERUI_SOURCE_DIR` 以源码方式构建 HuxerUI（发版 CI 就是这么做的）；改用已安装的 SDK 则去掉它，
+改为 `-DCMAKE_PREFIX_PATH <huxerui-sdk-prefix>`。
 
 WiX 5.0.2 会自动恢复到 `HUXERUI_WIX_ROOT`（默认 `<build>/.wix`）并做 SHA256 校验；版本与哈希由
 `cmake/HuxerUIInstaller.cmake` 和 `scripts/Restore-Wix.ps1` 共享。

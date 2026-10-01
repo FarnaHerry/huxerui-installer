@@ -148,8 +148,16 @@ function(huxerui_installer_add target_name)
     if (NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
         message(FATAL_ERROR "HuxerUI Windows installer packaging currently supports x64 only")
     endif ()
-    if (NOT HuxerUI_DIR)
-        message(FATAL_ERROR "huxerui_installer_add() requires find_package(HuxerUI) first")
+    # The engine needs win32_application_runner.h, shipped next to HuxerUIConfig.cmake in an installed
+    # SDK and living in platform/windows/ in a source checkout consumed via add_subdirectory.
+    if (HUXERUI_PROJECT_DIR AND EXISTS "${HUXERUI_PROJECT_DIR}/platform/windows/win32_application_runner.h")
+        set(HUXERUI_INSTALLER_RUNNER_INCLUDE "${HUXERUI_PROJECT_DIR}/platform/windows")
+    elseif (HuxerUI_DIR)
+        set(HUXERUI_INSTALLER_RUNNER_INCLUDE "${HuxerUI_DIR}")
+    else ()
+        message(FATAL_ERROR
+                "huxerui_installer_add() requires the HuxerUI SDK (find_package) or source tree (add_subdirectory)"
+        )
     endif ()
     if (NOT HUXERUI_WIX_ROOT)
         get_filename_component(HUXERUI_WIX_ROOT "${CMAKE_BINARY_DIR}/.huxerui/wix" ABSOLUTE)
@@ -200,7 +208,7 @@ function(huxerui_installer_add target_name)
     target_include_directories(${target_name} PRIVATE
             "${HUXERUI_INSTALLER_ROOT}/src/ui"
             "${HUXERUI_INSTALLER_ROOT}/src/engine"
-            "${HuxerUI_DIR}"
+            "${HUXERUI_INSTALLER_RUNNER_INCLUDE}"
             "${HUXERUI_WIX_BOOTSTRAPPER_INCLUDE}"
             "${HUXERUI_WIX_DUTIL_INCLUDE}"
     )

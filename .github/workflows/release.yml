@@ -10,10 +10,6 @@ on:
     tags:
       - 'v*.*.*'
 
-env:
-  # HuxerUI SDK release consumed by the build. Bump when the engine or UI needs a newer SDK.
-  HUXERUI_SDK_VERSION: '0.2.0'
-
 jobs:
   package:
     runs-on: windows-latest
@@ -30,14 +26,8 @@ jobs:
           $Version = $Tag.Substring(1)
           "RELEASE_VERSION=$Version" | Out-File -Append $env:GITHUB_ENV
 
-      - name: Download HuxerUI SDK
-        shell: pwsh
-        run: |
-          $Name = "huxerui-sdk-$env:HUXERUI_SDK_VERSION-windows-x86_64"
-          $Url = "https://github.com/HuxerUI/HuxerUI/releases/download/v$env:HUXERUI_SDK_VERSION/$Name.zip"
-          Invoke-WebRequest -Uri $Url -OutFile sdk.zip
-          Expand-Archive sdk.zip -DestinationPath sdk
-          "HUXERUI_SDK_PREFIX=$PWD/sdk/$Name" | Out-File -Append $env:GITHUB_ENV
+      - name: Clone the latest HuxerUI sources
+        run: git clone --depth 1 https://github.com/HuxerUI/HuxerUI.git huxerui-src
 
       - name: Set up the MSVC toolchain
         uses: ilammy/msvc-dev-cmd@v1
@@ -46,7 +36,7 @@ jobs:
         shell: pwsh
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
-              -DCMAKE_PREFIX_PATH="$env:HUXERUI_SDK_PREFIX" `
+              -DHUXERUI_SOURCE_DIR="$env:GITHUB_WORKSPACE/huxerui-src" `
               -DCMAKE_CXX_COMPILER=cl
           cmake --build build --config Release
 

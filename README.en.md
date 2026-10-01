@@ -56,15 +56,19 @@ scripts/make-setup.ps1           # one-shot packaging — prebuilt-mode entry po
 
 ## Building the prebuilt package locally
 
-Requires Windows with the MSVC C++ x64 tools, a HuxerUI SDK installation, and a .NET 6+ runtime for
-`wix.exe`:
+Requires Windows with the MSVC C++ x64 tools, a HuxerUI source checkout (or an installed SDK), and a
+.NET 6+ runtime for `wix.exe`:
 
 ```powershell
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH <huxerui-sdk-prefix> `
+git clone --depth 1 https://github.com/HuxerUI/HuxerUI.git huxerui-src
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DHUXERUI_SOURCE_DIR="$PWD/huxerui-src" `
     -DCMAKE_CXX_COMPILER=cl
 cmake --build build --config Release
 cmake --install build --config Release --component HuxerUIInstaller_huxerui_installer_ba --prefix out/ba
 ```
+
+`-DHUXERUI_SOURCE_DIR` builds HuxerUI from source (what the release CI does); to use an installed SDK
+instead, drop it and pass `-DCMAKE_PREFIX_PATH <huxerui-sdk-prefix>`.
 
 WiX 5.0.2 restores automatically into `HUXERUI_WIX_ROOT` (default `<build>/.wix`) with SHA256
 verification; the pins are shared by `cmake/HuxerUIInstaller.cmake` and `scripts/Restore-Wix.ps1`.
