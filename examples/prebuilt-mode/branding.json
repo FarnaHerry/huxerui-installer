@@ -1,0 +1,7 @@
+{
+  "productName": "My App",
+  "publisher": "My Company",
+  "logoPath": "branding\\logo.png",
+  "accentColor": "#1F6FEB",
+  "licenseFile": "branding\\license.txt"
+}

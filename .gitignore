@@ -1,0 +1,15 @@
+build/
+dist/
+.huxerui/
+.huxerui-sdk-build/
+*.user
+.vs/
+.vscode/
+node_modules/
+.wix/
+out/
+stage/
+make-setup-work/
+*.zip
+*.msi
+*-setup.exe

@@ -1,0 +1,45 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="@@APP_NAME@@" Manufacturer="@@MANUFACTURER@@" Version="@@APP_VERSION@@"
+           UpgradeCode="@@MSI_UPGRADE_CODE@@" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of @@APP_NAME@@ is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <Icon Id="ApplicationIcon" SourceFile="!(bindpath.Project)\@@ICON_FILE@@" />
+    <Property Id="ARPPRODUCTICON" Value="ApplicationIcon" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="@@INSTALL_DIR_NAME@@" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="APPLICATIONPROGRAMMENU" Name="@@APP_NAME@@" />
+    </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder" />
+
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
+      <Files Include="!(bindpath.Application)\**" />
+    </ComponentGroup>
+    <Component Id="ApplicationShortcut" Directory="APPLICATIONPROGRAMMENU">
+      <Shortcut Id="ApplicationStartMenuShortcut" Name="@@APP_NAME@@"
+                Target="[INSTALLFOLDER]@@APP_EXE@@" WorkingDirectory="INSTALLFOLDER"
+                Icon="ApplicationIcon" />
+      <RemoveFolder Id="RemoveApplicationProgramMenu" On="uninstall" />
+      <RegistryValue Root="HKLM" Key="Software\@@APP_ID@@\@@APP_NAME@@" Name="installed"
+                     Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+    <Component Id="ApplicationDesktopShortcut" Directory="DesktopFolder">
+      <Shortcut Id="ApplicationDesktopShortcutLink" Name="@@APP_NAME@@"
+                Target="[INSTALLFOLDER]@@APP_EXE@@" WorkingDirectory="INSTALLFOLDER"
+                Icon="ApplicationIcon" />
+      <RegistryValue Root="HKLM" Key="Software\@@APP_ID@@\@@APP_NAME@@" Name="desktopShortcut"
+                     Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Feature Id="Application" Title="@@APP_NAME@@" Level="1">
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+    <Feature Id="DesktopShortcut" Title="Desktop shortcut" Level="2" AllowAbsent="yes">
+      <Level Value="1" Condition="CREATE_DESKTOP_SHORTCUT = 1" />
+      <ComponentRef Id="ApplicationDesktopShortcut" />
+    </Feature>
+  </Package>
+</Wix>

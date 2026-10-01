@@ -1,0 +1,5 @@
+My App End User License Terms
+
+Replace this file with your application's license text. The default installer interface shows it on a
+license step before the installation options and gates the Install button on acceptance. Remove the
+"licenseFile" key from branding.json to skip the license step entirely.

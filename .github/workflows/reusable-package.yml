@@ -1,0 +1,114 @@
+# reusable-package.yml — workflow_call packaging job for HuxerUI app repositories (prebuilt mode).
+#
+# The caller builds its Windows application payload in an earlier job, uploads it as an artifact, then
+# calls this workflow to produce <app>-<version>-windows-x86_64-setup.exe. No C++ is compiled here: the
+# job downloads the pinned huxerui-installer release package, renders branding, and runs make-setup.ps1.
+#
+# Caller sketch:
+#   package:
+#     needs: build-windows
+#     uses: <owner>/huxerui-installer/.github/workflows/reusable-package.yml@v1
+#     with:
+#       app-name: niki
+#       app-id: dev.niki.app
+#       version: ${{ github.ref_name }}        # v1.2.0 accepted; the leading v is stripped
+#       payload-artifact: niki-windows-x86_64  # artifact whose root contains the app payload
+#       app-exe: niki.exe
+#       icon-path: packaging/windows/app.ico   # paths relative to the caller checkout
+#       branding-path: packaging/windows/branding.json
+#
+# Winget note: the produced bundle supports `/quiet /norestart` and `InstallFolder=` out of the box, so a
+# winget manifest only needs the release URL, its SHA256, and those silent switches.
+
+name: reusable-package
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        description: Display and file name of the application
+        required: true
+        type: string
+      app-id:
+        description: Stable reverse-domain application id seeding the upgrade codes
+        required: true
+        type: string
+      version:
+        description: Release version; a leading v is stripped
+        required: true
+        type: string
+      payload-artifact:
+        description: actions/upload-artifact name whose contents are the installed files
+        required: true
+        type: string
+      app-exe:
+        description: Executable file name inside the payload
+        required: true
+        type: string
+      icon-path:
+        description: Path to the application .ico in the caller repository
+        required: true
+        type: string
+      branding-path:
+        description: Path to branding.json in the caller repository
+        required: false
+        type: string
+        default: ''
+      installer-version:
+        description: huxerui-installer release to use, without the leading v
+        required: true
+        type: string
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Normalize version
+        shell: pwsh
+        run: |
+          $Version = "${{ inputs.version }}".TrimStart('v')
+          if ($Version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "version must be MAJOR.MINOR.PATCH, got '${{ inputs.version }}'"
+          }
+          "APP_VERSION=$Version" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Download the application payload
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.payload-artifact }}
+          path: payload
+
+      - name: Download the huxerui-installer package
+        shell: pwsh
+        run: |
+          $Name = "huxerui-installer-${{ inputs.installer-version }}-windows-x86_64"
+          $Url = "https://github.com/${{ github.repository_owner }}/huxerui-installer/releases/download/" +
+                 "v${{ inputs.installer-version }}/$Name.zip"
+          Invoke-WebRequest -Uri $Url -OutFile installer.zip
+          Expand-Archive installer.zip -DestinationPath installer
+          "INSTALLER_ROOT=$PWD/installer/$Name" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Build the setup executable
+        shell: pwsh
+        run: |
+          $Arguments = @{
+            AppName        = '${{ inputs.app-name }}'
+            AppId          = '${{ inputs.app-id }}'
+            Version        = $env:APP_VERSION
+            ApplicationDir = "$PWD/payload"
+            AppExe         = '${{ inputs.app-exe }}'
+            Icon           = '${{ inputs.icon-path }}'
+            Output         = "$PWD/${{ inputs.app-name }}-$env:APP_VERSION-windows-x86_64-setup.exe"
+          }
+          if ('${{ inputs.branding-path }}') {
+            $Arguments.BrandingJson = '${{ inputs.branding-path }}'
+          }
+          & "$env:INSTALLER_ROOT/scripts/make-setup.ps1" @Arguments
+
+      - name: Upload the setup executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.app-name }}-${{ env.APP_VERSION }}-windows-x86_64-setup
+          path: "${{ inputs.app-name }}-${{ env.APP_VERSION }}-windows-x86_64-setup.exe"

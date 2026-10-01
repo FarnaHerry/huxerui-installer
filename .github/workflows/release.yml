@@ -1,0 +1,82 @@
+# release.yml — build the precompiled huxerui-installer package on a version tag and publish it.
+#
+# Triggered by pushing a v<MAJOR.MINOR.PATCH> tag. The downloadable asset follows the release naming
+# convention: huxerui-installer-<version>-windows-x86_64.zip (no leading v in artifact names).
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  # HuxerUI SDK release consumed by the build. Bump when the engine or UI needs a newer SDK.
+  HUXERUI_SDK_VERSION: '0.2.0'
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag shape
+        shell: pwsh
+        run: |
+          $Tag = "${{ github.ref_name }}"
+          if ($Tag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "release tags must be vMAJOR.MINOR.PATCH, got '$Tag'"
+          }
+          $Version = $Tag.Substring(1)
+          "RELEASE_VERSION=$Version" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Download HuxerUI SDK
+        shell: pwsh
+        run: |
+          $Name = "huxerui-sdk-$env:HUXERUI_SDK_VERSION-windows-x86_64"
+          $Url = "https://github.com/HuxerUI/HuxerUI/releases/download/v$env:HUXERUI_SDK_VERSION/$Name.zip"
+          Invoke-WebRequest -Uri $Url -OutFile sdk.zip
+          Expand-Archive sdk.zip -DestinationPath sdk
+          "HUXERUI_SDK_PREFIX=$PWD/sdk/$Name" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Configure and build the bootstrapper application
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
+              -DCMAKE_PREFIX_PATH="$env:HUXERUI_SDK_PREFIX" `
+              -DCMAKE_CXX_COMPILER=cl
+          cmake --build build --config Release
+
+      - name: Stage the prebuilt package
+        shell: pwsh
+        run: |
+          $Stage = "stage/huxerui-installer-$env:RELEASE_VERSION-windows-x86_64"
+          cmake --install build --config Release --component HuxerUIInstaller_huxerui_installer_ba `
+              --prefix "$Stage/ba"
+          Copy-Item wix "$Stage/wix" -Recurse
+          Copy-Item scripts "$Stage/scripts" -Recurse
+          Copy-Item README.md, LICENSE "$Stage/"
+          $Expected = @(
+            "$Stage/ba/huxerui-installer-ba.exe",
+            "$Stage/ba/mbanative.dll",
+            "$Stage/wix/Package.wxs.in",
+            "$Stage/wix/Bundle.wxs.in",
+            "$Stage/scripts/Restore-Wix.ps1",
+            "$Stage/scripts/make-setup.ps1"
+          )
+          foreach ($File in $Expected) {
+            if (-not (Test-Path -LiteralPath $File -PathType Leaf)) {
+              throw "release package is incomplete; missing $File"
+            }
+          }
+          Compress-Archive -Path $Stage -DestinationPath `
+              "huxerui-installer-$env:RELEASE_VERSION-windows-x86_64.zip"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+              --title "huxerui-installer ${{ github.ref_name }}" `
+              --verify-tag `
+              "huxerui-installer-$env:RELEASE_VERSION-windows-x86_64.zip"
