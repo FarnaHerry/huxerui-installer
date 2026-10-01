@@ -1,0 +1,34 @@
+# build.yml — compile-check every push to main so packaging regressions surface before a release tag.
+#
+# Mirrors the release workflow's configure/build steps (same HuxerUI source build, same MSVC setup) but
+# skips staging and publishing.
+
+name: build
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone the latest HuxerUI sources
+        run: git clone --depth 1 https://github.com/HuxerUI/HuxerUI.git huxerui-src
+
+      - name: Set up the MSVC toolchain
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure and build
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
+              -DHUXERUI_SOURCE_DIR="$env:GITHUB_WORKSPACE/huxerui-src" `
+              -DCMAKE_CXX_COMPILER=cl
+          cmake --build build --config Release
