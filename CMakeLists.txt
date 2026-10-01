@@ -45,3 +45,13 @@ huxerui_installer_add(huxerui_installer_ba
         INTEGRATION_OUTPUT "${CMAKE_BINARY_DIR}/huxerui-installer/$<CONFIG>/installer.json"
 )
 set_target_properties(huxerui_installer_ba PROPERTIES OUTPUT_NAME "huxerui-installer-ba")
+
+# make-setup — native prebuilt-mode packager. A plain Win32 console tool (no HuxerUI dependency) that
+# wraps an already-staged application payload into a Burn bundle setup executable; the native equivalent
+# of scripts/make-setup.ps1.
+add_executable(make-setup src/pack/make_setup.cpp)
+target_include_directories(make-setup PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/shared")
+target_compile_features(make-setup PRIVATE cxx_std_17)
+target_compile_definitions(make-setup PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+target_link_libraries(make-setup PRIVATE bcrypt)
+install(TARGETS make-setup RUNTIME DESTINATION . COMPONENT HuxerUIInstaller_make_setup)

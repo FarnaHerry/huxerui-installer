@@ -217,6 +217,7 @@ function(huxerui_installer_add target_name)
     target_include_directories(${target_name} PRIVATE
             "${HUXERUI_INSTALLER_ROOT}/src/ui"
             "${HUXERUI_INSTALLER_ROOT}/src/engine"
+            "${HUXERUI_INSTALLER_ROOT}/src/shared"
             "${HUXERUI_INSTALLER_RUNNER_INCLUDE}"
             "${HUXERUI_WIX_BOOTSTRAPPER_INCLUDE}"
             "${HUXERUI_WIX_DUTIL_INCLUDE}"

@@ -49,10 +49,16 @@ jobs:
           $Stage = "stage/huxerui-installer-$env:RELEASE_VERSION-windows-x86_64"
           cmake --install build --config Release --component HuxerUIInstaller_huxerui_installer_ba `
               --prefix "$Stage/ba"
+          cmake --install build --config Release --component HuxerUIInstaller_make_setup `
+              --prefix "$Stage"
+          # Ship the WiX toolset inside the package so make-setup.exe works without a network restore.
+          Copy-Item "build/.wix/tool" "$Stage/wix-toolset" -Recurse
           Copy-Item wix "$Stage/wix" -Recurse
           Copy-Item scripts "$Stage/scripts" -Recurse
-          Copy-Item README.md, LICENSE "$Stage/"
+          Copy-Item README.md, README.en.md, LICENSE "$Stage/"
           $Expected = @(
+            "$Stage/make-setup.exe",
+            "$Stage/wix-toolset/tools/net6.0/any/wix.exe",
             "$Stage/ba/huxerui-installer-ba.exe",
             "$Stage/ba/mbanative.dll",
             "$Stage/wix/Package.wxs.in",

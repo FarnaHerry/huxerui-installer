@@ -105,7 +105,7 @@ function ConvertTo-NameGuid([string]$Name) {
     $NameBytes = [Text.Encoding]::UTF8.GetBytes($Name)
     $Hash = [Security.Cryptography.SHA1]::Create().ComputeHash([byte[]]($Namespace + $NameBytes))
     $Guid = [byte[]]$Hash[0..15]
-    $Guid[7] = ($Guid[7] -band 0x0F) -bor 0x50  # version 5
+    $Guid[6] = ($Guid[6] -band 0x0F) -bor 0x50  # version 5
     $Guid[8] = ($Guid[8] -band 0x3F) -bor 0x80  # RFC 4122 variant
     # Format in RFC 4122 network byte order (NOT [Guid]::new([byte[]]), which is little-endian) so the
     # result matches CMake's string(UUID ... TYPE SHA1) for the same name.
