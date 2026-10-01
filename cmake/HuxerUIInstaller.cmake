@@ -148,11 +148,20 @@ function(huxerui_installer_add target_name)
     if (NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
         message(FATAL_ERROR "HuxerUI Windows installer packaging currently supports x64 only")
     endif ()
-    # The engine needs win32_application_runner.h, shipped next to HuxerUIConfig.cmake in an installed
-    # SDK and living in platform/windows/ in a source checkout consumed via add_subdirectory.
-    if (HUXERUI_PROJECT_DIR AND EXISTS "${HUXERUI_PROJECT_DIR}/platform/windows/win32_application_runner.h")
-        set(HUXERUI_INSTALLER_RUNNER_INCLUDE "${HUXERUI_PROJECT_DIR}/platform/windows")
-    elseif (HuxerUI_DIR)
+    # The engine needs win32_application_runner.h, which lives in platform/windows/ of a HuxerUI source
+    # checkout and next to HuxerUIConfig.cmake in an installed SDK. Directory-scope variables do not
+    # propagate up from add_subdirectory, so discover the source checkout through the target itself.
+    set(HUXERUI_INSTALLER_RUNNER_INCLUDE "")
+    foreach (HUXERUI_INSTALLER_LIB_TARGET IN ITEMS huxerui huxerui_static)
+        if (TARGET ${HUXERUI_INSTALLER_LIB_TARGET})
+            get_target_property(HUXERUI_INSTALLER_SDK_SOURCE_DIR ${HUXERUI_INSTALLER_LIB_TARGET} SOURCE_DIR)
+            break()
+        endif ()
+    endforeach ()
+    if (HUXERUI_INSTALLER_SDK_SOURCE_DIR
+            AND EXISTS "${HUXERUI_INSTALLER_SDK_SOURCE_DIR}/platform/windows/win32_application_runner.h")
+        set(HUXERUI_INSTALLER_RUNNER_INCLUDE "${HUXERUI_INSTALLER_SDK_SOURCE_DIR}/platform/windows")
+    elseif (HuxerUI_DIR AND EXISTS "${HuxerUI_DIR}/win32_application_runner.h")
         set(HUXERUI_INSTALLER_RUNNER_INCLUDE "${HuxerUI_DIR}")
     else ()
         message(FATAL_ERROR
