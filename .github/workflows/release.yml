@@ -39,6 +39,9 @@ jobs:
           Expand-Archive sdk.zip -DestinationPath sdk
           "HUXERUI_SDK_PREFIX=$PWD/sdk/$Name" | Out-File -Append $env:GITHUB_ENV
 
+      - name: Set up the MSVC toolchain
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Configure and build the bootstrapper application
         shell: pwsh
         run: |
